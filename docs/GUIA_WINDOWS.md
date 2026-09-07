@@ -101,8 +101,11 @@ revisada pelo usuário **não** equivale a validação em produção.
 
 ## Obter o ZIP pelo GitHub
 
-Na aba **Actions**, abra a execução mais recente e baixe o artefato
-`ReceitaLocal-Windows-x64`. Actions entrega apenas o instalável: depois de extraído,
+Use sempre este link, que aponta para a versão mais recente e não expira:
+<https://github.com/laylamonteiro/dados-especificacoes-ftp/releases/latest>
+
+Durante o desenvolvimento também é possível baixar da aba **Actions**, na
+execução mais recente, o artefato `ReceitaLocal-Windows-x64`. Actions entrega apenas o instalável: depois de extraído,
 o programa roda no computador e abre `http://127.0.0.1:<porta>` automaticamente.
 Não envie arquivos de produção ao GitHub; eles são selecionados somente na interface
 local do aplicativo.

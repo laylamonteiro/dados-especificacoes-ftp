@@ -28,6 +28,8 @@ jobs:
     name: Aplicativo Windows x64
     needs: test
     runs-on: windows-2022
+    permissions:
+      contents: write        # necessário apenas para publicar a release em main
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -146,6 +148,36 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 6
+      - name: Publicar release com link permanente
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A release recebe um ZIP de verdade: diferente do artefato, o GitHub
+          # não recompacta o anexo, então não há ZIP dentro de ZIP.
+          $versao = "v0.1.${{ github.run_number }}"
+          Compress-Archive -Path dist/ReceitaLocal/* -DestinationPath ReceitaLocal-win-x64.zip -Force
+          $notas = @"
+          Aplicativo pronto para uso em Windows 10/11 x64. Não instala nada e não pede administrador.
+
+          1. Baixe ``ReceitaLocal-win-x64.zip`` abaixo.
+          2. **Antes de extrair**: botão direito no ZIP -> Propriedades -> marque **Desbloquear** -> OK.
+          3. Extraia e abra ``ReceitaLocal.exe``. O navegador abre sozinho em ``http://127.0.0.1:8531``.
+
+          O histórico de análises fica em ``%LOCALAPPDATA%\ReceitasProcesso`` e sobrevive à troca de versão.
+          Todo o processamento é local: nenhum arquivo sai do computador.
+          "@
+          gh release create $versao ReceitaLocal-win-x64.zip --title "Receita Local $versao" --notes $notas --latest
+          $permanente = "https://github.com/${{ github.repository }}/releases/latest/download/ReceitaLocal-win-x64.zip"
+          @"
+          ## Link permanente (sempre a versão mais recente)
+
+          ### [>> Baixar ReceitaLocal <<]($permanente)
+
+          Guarde este link nos favoritos: ele não expira e sempre aponta para a versão mais nova.
+          "@ | Add-Content $env:GITHUB_STEP_SUMMARY
+
       - name: Instruções no resumo da execução
         shell: pwsh
         run: |

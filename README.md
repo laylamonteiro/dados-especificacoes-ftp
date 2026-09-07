@@ -11,9 +11,18 @@ garantia de receita ideal nem uma validação industrial.
 > naquele computador e apenas enquanto o executável estiver aberto. Isso mantém os
 > arquivos industriais fora da internet.
 
-## Caminho mais simples: baixar e testar no Windows
+## Caminho mais simples: baixar pela Releases
 
-### 1. Gerar o ZIP no GitHub
+**Link permanente, sempre a versão mais recente:**
+<https://github.com/laylamonteiro/dados-especificacoes-ftp/releases/latest>
+
+Esse link não expira e não muda a cada versão — pode ser guardado nos favoritos.
+Cada envio para `main` publica uma release nova automaticamente.
+
+Existe também uma [prévia visual da interface](https://laylamonteiro.github.io/dados-especificacoes-ftp/),
+gerada com dados sintéticos, para ver as telas sem instalar nada.
+
+### 1. Gerar o ZIP no GitHub (alternativa, durante o desenvolvimento)
 
 1. Envie este repositório para o GitHub e confirme que o arquivo
    `.github/workflows/build-windows.yml` está na branch padrão (normalmente `main`).

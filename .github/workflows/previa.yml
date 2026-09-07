@@ -1,0 +1,52 @@
+name: Publicar prévia da interface
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  previa:
+    name: Capturar telas e publicar
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar dependências fixadas
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Capturar as telas do modo demonstração
+        run: python tools/gerar_previa.py --destino site --versao "0.1.0+${GITHUB_SHA::7}"
+      - name: Conferir que só há dados sintéticos
+        run: |
+          test -f site/index.html
+          ls -la site/telas/
+          # Falha se qualquer identificador real tiver escapado para a prévia.
+          ! grep -rilE "KSEA8BR45|KSEI8BR45|Gama|Jacarei|Jacareí" site/ || {
+            echo "Identificador real encontrado na prévia"; exit 1; }
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+      - name: Link no resumo
+        run: echo "## Prévia publicada em ${{ steps.deploy.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY

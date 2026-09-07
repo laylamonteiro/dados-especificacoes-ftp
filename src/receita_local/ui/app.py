@@ -12,7 +12,7 @@ if str(ROOT / "src") not in sys.path: sys.path.insert(0, str(ROOT / "src"))
 from receita_local.analysis.engine import (evaluate_quality_columns, generate_exploratory_recipe,
                                            link_records, partition_conditions)
 from receita_local.domain.models import ParameterRule, Requirement
-from receita_local.exports.writers import excel_bytes, pdf_bytes
+from receita_local.exports.writers import COLUMN_LABELS, excel_bytes, pdf_bytes
 from receita_local.importers.excel import ImportReview, import_sheet, inspect_workbook
 from receita_local.importers.pdf import extract_specification
 from receita_local.storage.repository import Repository
@@ -37,6 +37,12 @@ def get_repository() -> Repository:
 
 repo = get_repository()
 state = st.session_state
+
+
+def tabela(linhas) -> pd.DataFrame:
+    """Mesmos rótulos em português na tela e nas exportações."""
+    frame = pd.DataFrame(linhas)
+    return frame.rename(columns={c: COLUMN_LABELS.get(c, c) for c in frame.columns})
 
 
 def friendly(action, *args, **kwargs):
@@ -258,7 +264,7 @@ elif page == "Diagnóstico dos dados":
                     section_column=None if section == "(nenhuma)" else section)
                 st.success("Qualidade avaliada por propriedade, sem decisão de aprovação do lote.")
         if state.get("quality"):
-            st.dataframe(pd.DataFrame(state["quality"]), width="stretch")
+            st.dataframe(tabela(state["quality"]), width="stretch")
             st.info("Sem regra confirmada de aceitação por lote, o aplicativo não emite aprovação da produção.")
 
     if lab is not None and process is not None:
@@ -310,14 +316,14 @@ elif page == "Receita proposta":
         st.markdown("**Configuração de referência (condição conjunta observada)**")
         reference = {k: v for k, v in result.get("reference", {}).items() if v is not None}
         st.json(reference, expanded=False)
-        st.dataframe(pd.DataFrame(result["items"]), width="stretch")
+        st.dataframe(tabela(result["items"]), width="stretch")
         st.warning("Proposta preliminar. **Revisada pelo usuário** não significa **validada em produção**.")
         c1, c2, c3 = st.columns(3)
         with c1: st.markdown("**Evidências**"); st.write(result["evidence"])
         with c2: st.markdown("**Pendências**"); st.write(result["pending"] or ["nenhuma"])
         with c3: st.markdown("**Hipóteses**"); st.write(result["assumptions"])
         if result.get("quality"):
-            st.markdown("**Qualidade**"); st.dataframe(pd.DataFrame(result["quality"]), width="stretch")
+            st.markdown("**Qualidade**"); st.dataframe(tabela(result["quality"]), width="stretch")
 
 else:
     st.subheader("6. Histórico e exportação")
@@ -332,9 +338,9 @@ else:
                               format_func=lambda v: f"v{v} — " + next(x["justification"] for x in versions if x["version"] == v))
         result = repo.get_version(aid, chosen)
         st.caption("Receitas históricas são reabertas como foram salvas; nada é recalculado silenciosamente.")
-        st.dataframe(pd.DataFrame(result.get("items", [])), width="stretch")
+        st.dataframe(tabela(result.get("items", [])), width="stretch")
         if result.get("quality"):
-            st.markdown("**Qualidade**"); st.dataframe(pd.DataFrame(result["quality"]), width="stretch")
+            st.markdown("**Qualidade**"); st.dataframe(tabela(result["quality"]), width="stretch")
         with st.expander("Configuração e hipóteses registradas"): st.json(repo.get_config(aid))
 
         meta = {"id": aid, "versão": chosen, "algoritmo": result.get("algorithm_version"),

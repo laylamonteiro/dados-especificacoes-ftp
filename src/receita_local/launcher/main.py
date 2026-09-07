@@ -49,6 +49,9 @@ def streamlit_environment(port: int) -> dict[str, str]:
         "STREAMLIT_SERVER_PORT": str(port),
         "STREAMLIT_SERVER_HEADLESS": "true",
         "STREAMLIT_BROWSER_GATHER_USAGE_STATS": "false",
+        # Sem botão "Deploy" nem menu de desenvolvedor: não fazem sentido num
+        # aplicativo local usado por quem não programa.
+        "STREAMLIT_CLIENT_TOOLBAR_MODE": "minimal",
     }
 
 
