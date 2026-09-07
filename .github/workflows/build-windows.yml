@@ -134,6 +134,7 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path dist/ReceitaLocal -DestinationPath dist/ReceitaLocal-0.1.0-win-x64.zip -Force
       - name: Publicar aplicativo para download
+        id: publicar
         uses: actions/upload-artifact@v4
         with:
           name: ReceitaLocal-Windows-x64
@@ -146,7 +147,9 @@ jobs:
           @"
           ## Aplicativo pronto para baixar
 
-          1. Abra **Artifacts** nesta execução e baixe **ReceitaLocal-Windows-x64**.
+          ### [>> Baixar ReceitaLocal-Windows-x64 <<](${{ steps.publicar.outputs.artifact-url }})
+
+          1. Clique no link acima. (Ele também está em **Artifacts**, no fim desta página.)
           2. **Antes de extrair**, clique com o botão direito no ZIP baixado -> **Propriedades** ->
              marque **Desbloquear** -> **OK**. Isso remove a marca de "baixado da internet" de todo o
              conteúdo de uma vez e evita o aviso do SmartScreen na primeira execução.
