@@ -241,8 +241,29 @@ def test_endereco_obsoleto_nao_sobrevive_a_um_encerramento_forcado(tmp_path, mon
     assert stale.exists()
 
     # Falha proposital logo após a limpeza inicial, sem subir servidor nenhum.
-    monkeypatch.setattr(launcher, "free_port", lambda: (_ for _ in ()).throw(RuntimeError("parar aqui")))
+    monkeypatch.setattr(launcher, "choose_port", lambda: (_ for _ in ()).throw(RuntimeError("parar aqui")))
     monkeypatch.setattr(launcher, "show_error", lambda message: None)
     with pytest.raises(RuntimeError, match="parar aqui"):
         launcher.main()
     assert not stale.exists(), "o endereço obsoleto precisa ser removido antes de tentar subir"
+
+
+def test_porta_preferida_torna_o_endereco_previsivel(monkeypatch):
+    """O usuário precisa poder guardar o link nos favoritos; a porta só muda quando
+    a preferida está ocupada."""
+    from receita_local.launcher import main as launcher
+
+    monkeypatch.delenv("RECEITA_FIXED_PORT", raising=False)
+    # Uma porta livre desta máquina faz o papel da preferida: o teste não pode
+    # depender de a 8531 estar livre em quem executa.
+    preferida = launcher.free_port()
+    monkeypatch.setenv("RECEITA_PREFERRED_PORT", str(preferida))
+    assert launcher.choose_port() == preferida, "a porta preferida deve ser reusada quando livre"
+
+    with socket.socket() as ocupada:
+        ocupada.bind(("127.0.0.1", preferida))
+        alternativa = launcher.choose_port()
+    assert alternativa != preferida and alternativa > 1024, "porta ocupada exige alternativa"
+
+    monkeypatch.setenv("RECEITA_FIXED_PORT", "9099")
+    assert launcher.choose_port() == 9099, "porta exigida explicitamente tem precedência"

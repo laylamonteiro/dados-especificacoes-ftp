@@ -33,8 +33,7 @@ tem permissão de escrita no repositório, se Actions está habilitado em
 
 ### 2. Abrir a aplicação
 
-1. Localize o arquivo baixado. Dependendo do navegador, ele pode conter outro ZIP
-   chamado `ReceitaLocal-0.1.0-win-x64.zip`; extraia também esse ZIP.
+1. Localize o ZIP baixado, `ReceitaLocal-Windows-x64.zip`.
 2. **Antes de extrair**, clique com o botão direito no ZIP → **Propriedades** →
    marque **Desbloquear** → **OK**. Isso remove a marca de "arquivo baixado da
    internet" de todo o conteúdo de uma vez e evita o aviso do SmartScreen.
@@ -43,8 +42,10 @@ tem permissão de escrita no repositório, se Actions está habilitado em
 4. Entre na pasta `ReceitaLocal` extraída e dê dois cliques em
    `ReceitaLocal.exe`. Não é necessário instalar nada: o aplicativo é portátil e
    não precisa de Python, terminal nem permissão de administrador.
-5. Aguarde o navegador padrão abrir uma página em `http://127.0.0.1:<porta>`.
-   A porta é escolhida automaticamente e pode não ser `8501`.
+5. Aguarde o navegador padrão abrir sozinho, normalmente em
+   `http://127.0.0.1:8531`. Se essa porta estiver ocupada, o aplicativo escolhe
+   outra e grava o endereço em
+   `%LOCALAPPDATA%\ReceitasProcesso\ENDERECO_DO_APLICATIVO.txt`.
 6. Para encerrar corretamente, use **Encerrar aplicativo** na barra lateral.
    Fechar apenas a aba do navegador não encerra o servidor local.
 

@@ -52,9 +52,31 @@ def streamlit_environment(port: int) -> dict[str, str]:
     }
 
 
+# Endereço previsível: o usuário consegue guardar o link nos favoritos em vez de
+# caçar a porta a cada execução. Só muda se a porta já estiver ocupada.
+PREFERRED_PORT = 8531
+
+
 def free_port() -> int:
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0)); return sock.getsockname()[1]
+
+
+def port_is_free(port: int) -> bool:
+    with socket.socket() as sock:
+        try:
+            sock.bind(("127.0.0.1", port)); return True
+        except OSError:
+            return False
+
+
+def choose_port() -> int:
+    """Porta fixa se exigida, senão a preferida, senão qualquer livre."""
+    fixed = os.environ.get("RECEITA_FIXED_PORT")
+    if fixed:
+        return int(fixed)
+    preferred = int(os.environ.get("RECEITA_PREFERRED_PORT") or PREFERRED_PORT)
+    return preferred if port_is_free(preferred) else free_port()
 
 
 def run_streamlit_child(app: Path, port: int) -> int:
@@ -124,8 +146,7 @@ def main() -> int:
     # Encerramento forçado (Gerenciador de Tarefas, queda) pula a limpeza do finally.
     # Um endereço vencido em disco levaria o usuário a uma porta morta.
     address.unlink(missing_ok=True)
-    configured_port = os.environ.get("RECEITA_FIXED_PORT")
-    port = int(configured_port) if configured_port else free_port()
+    port = choose_port()
     stop.unlink(missing_ok=True); lock.write_text(f"{os.getpid()}:{port}")
     os.environ.update(RECEITA_STOP_FILE=str(stop), **streamlit_environment(port))
     bundle = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[3]))

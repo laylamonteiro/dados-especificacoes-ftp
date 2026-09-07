@@ -35,7 +35,9 @@ conhecido de aplicativos empacotados com PyInstaller, e eles conseguem liberar.
 1. Extraia todo o ZIP para qualquer pasta local gravável. Não execute dentro do ZIP.
 2. Selecione arquivos OneDrive como **Sempre manter neste dispositivo**.
 3. Abra `ReceitaLocal.exe`. Não é preciso instalar, ter Python, usar terminal nem
-   ser administrador. O navegador abre em `127.0.0.1`; nenhuma internet é usada.
+   ser administrador. **O navegador abre sozinho**, normalmente em
+   **`http://127.0.0.1:8531`** — pode guardar esse endereço nos favoritos.
+   Nenhuma internet é usada.
 4. Em **Nova análise**, importe os três arquivos. Em **Revisão da importação**, confirme
    aba e cabeçalho do arquivo de processo **e** do de laboratório. Em **Regras e hipóteses**,
    escolha os parâmetros, as colunas que separam condições e confira os requisitos lidos do
@@ -49,8 +51,9 @@ Antes de mais nada, **confira as outras abas do navegador**. Se ele estiver
 configurado para restaurar a sessão anterior, a aba com erro pode ser de outro
 site aberto antes, e a aba da aplicação estar ao lado.
 
-O endereço correto muda a cada execução, porque o aplicativo escolhe uma porta
-livre. Para descobrir o endereço em uso:
+O endereço normal é **`http://127.0.0.1:8531`**. Se essa porta já estiver ocupada
+por outro programa, o aplicativo escolhe outra automaticamente. Para descobrir
+qual está em uso:
 
 1. Com o `ReceitaLocal.exe` aberto, cole isto na barra de endereços do Explorador
    de Arquivos e tecle Enter:
@@ -65,7 +68,6 @@ Esse arquivo só existe enquanto o aplicativo está aberto. Se ele não aparecer
 programa não chegou a subir: veja `logs\launcher.log` na mesma pasta.
 
 Endereços como `localhost:3000` ou `localhost:8501` **não** são desta aplicação.
-A porta nunca é fixa e fica na faixa alta (49152 a 65535).
 
 ### Se o endereço certo também falhar: proxy da empresa
 

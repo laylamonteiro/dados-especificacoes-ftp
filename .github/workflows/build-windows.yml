@@ -48,7 +48,7 @@ jobs:
         shell: pwsh
         run: |
           $env:RECEITA_NO_BROWSER = "1"
-          $env:RECEITA_FIXED_PORT = "8501"
+          $env:RECEITA_FIXED_PORT = "8501"   # porta explícita, caminho de configuração
           $process = Start-Process -FilePath "dist/ReceitaLocal/ReceitaLocal.exe" -PassThru
           try {
             $ready = $false
@@ -76,6 +76,9 @@ jobs:
           # Sem RECEITA_FIXED_PORT: é assim que o aplicativo roda na máquina de destino.
           $env:RECEITA_NO_BROWSER = "1"
           Remove-Item Env:RECEITA_FIXED_PORT -ErrorAction SilentlyContinue
+          # Ocupa a porta preferida para forçar o caminho de fallback.
+          $bloqueio = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 8531)
+          $bloqueio.Start()
           $data = Join-Path $env:LOCALAPPDATA "ReceitasProcesso"
           # O teste anterior encerra com Stop-Process -Force, que pula a limpeza do
           # launcher e deixa lock e endereço para trás. Sem isto o teste leria a porta antiga.
@@ -94,6 +97,7 @@ jobs:
             if ($url -notmatch '^http://127\.0\.0\.1:\d+$') { throw "Endereço fora de 127.0.0.1: $url" }
             $port = [int]($url -split ':')[2]
             if ($port -lt 1024) { throw "Porta privilegiada inesperada: $port" }
+            if ($port -eq 8531) { throw "A porta preferida estava ocupada; o fallback não foi usado" }
             $ok = $false
             1..60 | ForEach-Object {
               if (-not $ok) {
@@ -110,6 +114,7 @@ jobs:
           } finally {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
             Get-Process ReceitaLocal -ErrorAction SilentlyContinue | Stop-Process -Force
+            $bloqueio.Stop()
           }
 
       - name: Diagnóstico quando o smoke test falha
@@ -130,17 +135,17 @@ jobs:
           $static = "dist/ReceitaLocal/_internal/streamlit/static"
           if (Test-Path $static) { (Get-ChildItem $static -Recurse -File).Count } else { Write-Host "AUSENTE: $static" }
 
-      - name: Criar ZIP
-        shell: pwsh
-        run: Compress-Archive -Path dist/ReceitaLocal -DestinationPath dist/ReceitaLocal-0.1.0-win-x64.zip -Force
       - name: Publicar aplicativo para download
         id: publicar
         uses: actions/upload-artifact@v4
         with:
           name: ReceitaLocal-Windows-x64
-          path: dist/ReceitaLocal-0.1.0-win-x64.zip
+          # A pasta, não um ZIP: o GitHub já compacta o artefato no download e
+          # subir um ZIP aqui produziria um ZIP dentro de outro ZIP.
+          path: dist/ReceitaLocal/
           if-no-files-found: error
           retention-days: 30
+          compression-level: 6
       - name: Instruções no resumo da execução
         shell: pwsh
         run: |
@@ -161,8 +166,10 @@ jobs:
           disser que o aplicativo foi **bloqueado pelo administrador do sistema**, aí é política
           corporativa (AppLocker/WDAC) e o caminho é falar com a TI.
 
-          O executável abre a aplicação no navegador em ``http://127.0.0.1:<porta>``. Essa URL é local
-          ao computador e mantém os arquivos industriais fora da internet.
+          O executável abre a aplicação sozinho no navegador, normalmente em ``http://127.0.0.1:8531``.
+          Se essa porta estiver ocupada ele escolhe outra e grava o endereço em
+          ``%LOCALAPPDATA%\ReceitasProcesso\ENDERECO_DO_APLICATIVO.txt``. Essa URL é local ao
+          computador e mantém os arquivos industriais fora da internet.
 
           O histórico de análises fica em ``%LOCALAPPDATA%\ReceitasProcesso`` e sobrevive à troca de versão.
           "@ | Add-Content $env:GITHUB_STEP_SUMMARY
