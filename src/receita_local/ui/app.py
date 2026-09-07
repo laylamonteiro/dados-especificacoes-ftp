@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import sys, tempfile
+import shutil, sys, tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -55,7 +55,9 @@ def review_panel(label: str, key: str) -> None:
     paths = [Path(p) for p in state.get("paths", []) if p.lower().endswith(".xlsx")]
     if not paths:
         st.warning("Importe os arquivos na tela **Nova análise** primeiro."); return
-    chosen = st.selectbox(f"Arquivo — {label}", paths, format_func=lambda p: p.name, key=f"file_{key}")
+    labels = state.get("file_labels", {})
+    chosen = st.selectbox(f"Arquivo — {label}", paths,
+                          format_func=lambda p: labels.get(str(p), p.name), key=f"file_{key}")
     info = friendly(inspect_workbook, chosen)
     if info is None: return
     names = [s["name"] for s in info["sheets"]]
@@ -82,7 +84,7 @@ def review_panel(label: str, key: str) -> None:
             st.write(info["formula_without_cache"])
     if st.button(f"Confirmar {label}", key=f"confirm_{key}", disabled=review.frame.empty):
         state[key] = review.frame
-        state[f"{key}_meta"] = {"arquivo": chosen.name, "aba": sheet, "linha_cabecalho": int(header),
+        state[f"{key}_meta"] = {"arquivo": labels.get(str(chosen), chosen.name), "aba": sheet, "linha_cabecalho": int(header),
                                 "aceitos": len(review.frame), "excluidos": review.exclusion_summary,
                                 "coluna_data": review.timestamp_column}
         st.success(f"{label}: {len(review.frame)} registros confirmados para esta análise.")
@@ -127,11 +129,21 @@ elif page == "Nova análise":
         st.success("Demonstração identificada e carregada; ela não representa dados industriais reais.")
 
     if st.button("Importar cópias de trabalho", disabled=not uploads):
-        docs, paths = [], []
-        for upload in uploads:
-            tmp = Path(tempfile.mkdtemp(prefix="receita_")) / upload.name
-            tmp.write_bytes(upload.getbuffer()); paths.append(tmp); docs.append(repo.import_file(tmp))
+        docs, paths, labels = [], [], {}
+        staging = Path(tempfile.mkdtemp(prefix="receita_"))
+        try:
+            for upload in uploads:
+                staged = staging / upload.name
+                staged.write_bytes(upload.getbuffer())
+                doc = repo.import_file(staged)
+                # A revisão lê a cópia de trabalho preservada com a análise, não o
+                # arquivo temporário: nada dos dados industriais fica no %TEMP%.
+                stored = Path(doc["stored_path"])
+                docs.append(doc); paths.append(stored); labels[str(stored)] = upload.name
+        finally:
+            shutil.rmtree(staging, ignore_errors=True)
         state["docs"], state["paths"], state["demo"] = docs, [str(p) for p in paths], False
+        state["file_labels"] = labels
         pdf = next((p for p in paths if p.suffix.lower() == ".pdf"), None)
         if pdf:
             extracted = friendly(extract_specification, pdf)
