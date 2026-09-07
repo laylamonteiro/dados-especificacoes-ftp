@@ -66,11 +66,17 @@ Não tente contornar SmartScreen, antivírus ou políticas da empresa.
    - o PDF de especificação;
    - o Excel de resultados laboratoriais;
    - o Excel de parâmetros de processo.
-3. Na revisão da importação, confira a aba, a linha de cabeçalho, os campos
-   mapeados, registros excluídos, unidades, etapa e ambiguidades.
-4. Revise regras e hipóteses. Confirme o alias `KSEA8BR45` / `KSEI8BR45` somente
-   para este estudo de caso.
-5. Gere a receita exploratória, confira pendências e evidências e exporte Excel e
+3. Na revisão da importação, confira aba, linha de cabeçalho, registros
+   excluídos e o motivo de cada exclusão — **para o arquivo de processo e para o
+   de laboratório**, nas duas abas da tela.
+4. Em regras e hipóteses, escolha os parâmetros, as colunas que separam condições
+   incompatíveis e confira os requisitos lidos do PDF, corrigindo o que for
+   necessário. Confirme o alias `KSEA8BR45` / `KSEI8BR45` somente para este
+   estudo de caso.
+5. Em diagnóstico dos dados, ligue cada requisito à coluna correspondente do
+   laboratório e avalie a qualidade. Sem esse vínculo confirmado o resultado é
+   inconclusivo, nunca aprovado.
+6. Gere a receita exploratória, confira pendências e evidências e exporte Excel e
    PDF.
 
 Não faça upload dos arquivos de produção no GitHub ou no Actions. Eles devem ser
@@ -85,6 +91,30 @@ selecionados somente na aplicação executada localmente.
   especificação.
 - Excel, PDF e tela apresentam a mesma versão da receita.
 - O histórico permanece disponível após reiniciar o aplicativo.
+
+## Status de verificação
+
+Verificado automaticamente a cada execução do workflow (24 testes):
+
+- importação com cabeçalho deslocado, cabeçalho repetido, rodapé de estatísticas,
+  colunas homônimas, aba vazia e caminho com acentos e espaços;
+- limites nunca inventados para parâmetros constantes ou sem dados;
+- separação de condições incompatíveis antes da escolha da referência;
+- requisitos do PDF com limite unilateral, etapa e critério preservados;
+- qualidade inconclusiva sem mapeamento confirmado;
+- repetibilidade com as mesmas entradas, persistência entre reinicializações e
+  exportações Excel/PDF consistentes com a tela;
+- as sete telas renderizam sem stack trace;
+- no runner Windows: build `onedir`, execução do `.exe` e resposta em
+  `http://127.0.0.1:<porta>/_stcore/health`.
+
+Verificado manualmente contra os três arquivos do estudo de caso (não versionados):
+219 registros de processo, 966 de laboratório, 19 requisitos do PDF e 3 ordens de
+fabricação separadas.
+
+Ainda depende de validação no Windows corporativo de destino: comportamento do
+SmartScreen/antivírus sobre o executável não assinado, políticas de execução da
+empresa e leitura de pastas do OneDrive nesse ambiente.
 
 Dados persistentes, cópias de trabalho e logs ficam em
 `%LOCALAPPDATA%\ReceitasProcesso`, nunca junto do executável. Consulte também o
