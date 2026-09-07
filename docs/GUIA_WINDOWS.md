@@ -3,7 +3,11 @@
 1. Extraia todo o ZIP para qualquer pasta local gravável. Não execute dentro do ZIP.
 2. Selecione arquivos OneDrive como **Sempre manter neste dispositivo**.
 3. Abra `ReceitaLocal.exe`. O navegador abrirá em `127.0.0.1`; nenhuma internet é usada.
-4. Importe os três arquivos, revise cabeçalho/mapeamento, confirme regras e gere a proposta.
+4. Em **Nova análise**, importe os três arquivos. Em **Revisão da importação**, confirme
+   aba e cabeçalho do arquivo de processo **e** do de laboratório. Em **Regras e hipóteses**,
+   escolha os parâmetros, as colunas que separam condições e confira os requisitos lidos do
+   PDF. Em **Diagnóstico dos dados**, ligue cada requisito à coluna do laboratório e avalie a
+   qualidade. Em **Receita proposta**, gere a proposta.
 5. Baixe Excel/PDF. Use **Encerrar aplicativo** na lateral; fechar a aba não encerra.
 
 Dados, banco e logs locais ficam em `%LOCALAPPDATA%\ReceitasProcesso`. O aplicativo

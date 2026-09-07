@@ -15,7 +15,7 @@ class Repository:
     def __init__(self, root: Path | None = None):
         self.root = root or data_dir(); self.files = self.root / "files"; self.logs = self.root / "logs"
         self.files.mkdir(parents=True, exist_ok=True); self.logs.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(self.root / "receitas.db")
+        self.db = sqlite3.connect(self.root / "receitas.db", check_same_thread=False)
         self.db.executescript("""
         PRAGMA foreign_keys=ON;
         CREATE TABLE IF NOT EXISTS documents(id TEXT PRIMARY KEY, name TEXT, sha256 TEXT UNIQUE, imported_at TEXT, stored_path TEXT);
@@ -40,6 +40,26 @@ class Repository:
         self.db.execute("INSERT INTO analyses VALUES(?,?,?,?,?,?)", (aid, product, now, "exploratory-medoid-v1", json.dumps(config, ensure_ascii=False), payload))
         self.db.execute("INSERT INTO recipe_versions VALUES(?,?,?,?,?,?,?)", (uuid4().hex, aid, 1, now, payload, "versão calculada", 0))
         self.db.executemany("INSERT INTO analysis_documents VALUES(?,?)", [(aid, d) for d in document_ids]); self.db.commit(); return aid
+
+    def save_alias(self, product: str, alias: str, confirmed: bool = True) -> None:
+        self.db.execute("INSERT OR REPLACE INTO aliases VALUES(?,?,?)", (product, alias, int(confirmed)))
+        self.db.commit()
+
+    def list_aliases(self, product: str) -> list[str]:
+        return [r[0] for r in self.db.execute("SELECT alias FROM aliases WHERE product=? AND confirmed=1", (product,))]
+
+    def list_versions(self, aid: str) -> list[dict]:
+        return [dict(zip(("version", "created_at", "justification", "reviewed"), r)) for r in self.db.execute(
+            "SELECT version,created_at,justification,reviewed FROM recipe_versions WHERE analysis_id=? ORDER BY version", (aid,))]
+
+    def get_version(self, aid: str, version: int) -> dict:
+        row = self.db.execute("SELECT result_json FROM recipe_versions WHERE analysis_id=? AND version=?", (aid, version)).fetchone()
+        if not row: raise KeyError(f"{aid}:{version}")
+        return json.loads(row[0])
+
+    def get_config(self, aid: str) -> dict:
+        row = self.db.execute("SELECT config_json FROM analyses WHERE id=?", (aid,)).fetchone()
+        return json.loads(row[0]) if row else {}
 
     def list_analyses(self) -> list[dict]:
         return [dict(zip(("id","product","created_at","algorithm"), r)) for r in self.db.execute("SELECT id,product,created_at,algorithm FROM analyses ORDER BY created_at DESC")]

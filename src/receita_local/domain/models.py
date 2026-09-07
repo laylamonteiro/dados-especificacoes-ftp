@@ -14,6 +14,15 @@ class Requirement:
     maximum: float | None = None
     criterion: str = "proposto"
     source: str = ""
+    kind: str = "numeric"        # numeric | qualitative
+    target_text: str | None = None
+    method: str = ""
+
+    @property
+    def key(self) -> str:
+        """Identificador estável: a mesma propriedade existe como requisito do
+        cliente e como controle interno, com limites diferentes."""
+        return f"{self.property} [{self.stage}] ({self.criterion})"
 
 
 @dataclass
@@ -55,4 +64,4 @@ class AnalysisResult:
     reference: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return {**asdict(self), "algorithm_version": "exploratory-medoid-v1"}
+        return {**asdict(self), "algorithm_version": "exploratory-medoid-v2"}

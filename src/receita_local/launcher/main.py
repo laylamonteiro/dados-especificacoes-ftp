@@ -13,6 +13,12 @@ def free_port() -> int:
 
 def run_streamlit_child(app: Path, port: int) -> int:
     """Executa Streamlit dentro do binário PyInstaller sem iniciar outro serviço externo."""
+    # Executável empacotado com console=False pode não ter stdout/stderr; sem isso
+    # qualquer print do Streamlit derruba o processo filho em silêncio.
+    if sys.stdout is None or sys.stderr is None:
+        sink = open(data_dir() / "logs" / "streamlit.log", "a", encoding="utf-8", buffering=1)
+        if sys.stdout is None: sys.stdout = sink
+        if sys.stderr is None: sys.stderr = sink
     from streamlit.web import bootstrap
 
     bootstrap.run(str(app), False, [], {
@@ -24,8 +30,20 @@ def run_streamlit_child(app: Path, port: int) -> int:
     return 0
 
 
+def show_error(message: str) -> None:
+    """Mostra o erro mesmo quando o executável foi empacotado sem console."""
+    sys.stderr.write(f"{message}\n")
+    if sys.platform == "win32":
+        safe = message.replace("'", "''")
+        subprocess.run(["powershell", "-NoProfile", "-Command",
+                        "Add-Type -AssemblyName PresentationFramework; "
+                        f"[System.Windows.MessageBox]::Show('{safe}','Receita Local')"], check=False)
+
+
 def main() -> int:
-    root = data_dir(); root.mkdir(parents=True, exist_ok=True)
+    root = data_dir()
+    logs = root / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
     lock, stop = root / "application.lock", root / "stop.request"
     if lock.exists():
         try:
@@ -43,7 +61,7 @@ def main() -> int:
         cmd = [sys.executable, "--streamlit-child", str(app), str(port)]
     else:
         cmd = [sys.executable, "-m", "streamlit", "run", str(app), "--server.address", "127.0.0.1", "--server.port", str(port), "--server.headless", "true", "--browser.gatherUsageStats", "false"]
-    log = open(root / "logs" / "launcher.log", "a", encoding="utf-8")
+    log = open(logs / "launcher.log", "a", encoding="utf-8")
     process = subprocess.Popen(cmd, stdout=log, stderr=log)
     try:
         for _ in range(120):
@@ -58,8 +76,8 @@ def main() -> int:
         if process.poll() is None: process.terminate(); process.wait(timeout=10)
         return 0
     except Exception as exc:
-        log.write(f"Falha de inicialização: {exc}\n")
-        if sys.platform == "win32": subprocess.run(["powershell", "-NoProfile", "-Command", f"Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('{str(exc).replace("'", "''")}','Receita Local')"], check=False)
+        log.write(f"Falha de inicialização: {exc}\n"); log.flush()
+        show_error(f"{exc}\n\nDetalhes em: {logs / 'launcher.log'}")
         return 1
     finally:
         lock.unlink(missing_ok=True); stop.unlink(missing_ok=True); log.close()
@@ -67,5 +85,12 @@ def main() -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) == 4 and sys.argv[1] == "--streamlit-child":
+        (data_dir() / "logs").mkdir(parents=True, exist_ok=True)
         raise SystemExit(run_streamlit_child(Path(sys.argv[2]), int(sys.argv[3])))
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except SystemExit:
+        raise
+    except BaseException as exc:  # nenhuma falha pode encerrar o executável em silêncio
+        show_error(f"Falha inesperada ao iniciar: {exc}")
+        raise SystemExit(1)

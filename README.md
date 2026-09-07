@@ -50,10 +50,10 @@ Não tente contornar SmartScreen, antivírus ou políticas da empresa.
 
 ### 3. Fazer um teste rápido sem dados da empresa
 
-1. Na página inicial, ative o **modo demonstração**.
+1. Vá em **Nova análise** e clique em **Carregar demonstração sintética**.
 2. Gere a análise usando os dados sintéticos identificados como demonstração.
-3. Confira a configuração de referência, os parâmetros, as evidências e as
-   pendências apresentadas.
+3. Vá em **Receita proposta**, gere a análise e confira a configuração de
+   referência, os parâmetros, as evidências e as pendências apresentadas.
 4. Exporte a receita em Excel e PDF e abra os dois arquivos.
 5. Feche corretamente o aplicativo, abra `ReceitaLocal.exe` de novo e confirme
    que a análise continua no Histórico.
