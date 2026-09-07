@@ -23,6 +23,27 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
       - name: Executar testes
         run: python -m pytest -q
+      - name: Instalar navegador para a verificação de interface
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Verificar a interface em um navegador real
+        run: |
+          set -euo pipefail
+          export RECEITA_NO_BROWSER=1 PYTHONPATH=src
+          export XDG_DATA_HOME="$RUNNER_TEMP/dados"
+          python src/receita_local/launcher/main.py &
+          endereco="$XDG_DATA_HOME/ReceitasProcesso/ENDERECO_DO_APLICATIVO.txt"
+          for _ in $(seq 1 90); do [ -f "$endereco" ] && break || sleep 1; done
+          test -f "$endereco" || { echo "a aplicação não publicou o endereço"; exit 1; }
+          python tools/verificar_interface.py --url "$(head -1 "$endereco")"
+          touch "$XDG_DATA_HOME/ReceitasProcesso/stop.request"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: capturas-falha-linux
+          path: capturas-verificacao/
+          if-no-files-found: ignore
 
   windows:
     name: Aplicativo Windows x64
@@ -118,6 +139,41 @@ jobs:
             Get-Process ReceitaLocal -ErrorAction SilentlyContinue | Stop-Process -Force
             $bloqueio.Stop()
           }
+
+      - name: Verificar a interface do executável em um navegador real
+        shell: pwsh
+        run: |
+          # O smoke test acima prova que o servidor responde. Este prova que a
+          # aplicação carrega, o motor roda e a receita aparece na tela.
+          python -m pip install playwright==1.55.0
+          python -m playwright install chromium
+          $env:RECEITA_NO_BROWSER = "1"
+          Remove-Item Env:RECEITA_FIXED_PORT -ErrorAction SilentlyContinue
+          $data = Join-Path $env:LOCALAPPDATA "ReceitasProcesso"
+          Remove-Item (Join-Path $data "application.lock") -ErrorAction SilentlyContinue
+          Remove-Item (Join-Path $data "ENDERECO_DO_APLICATIVO.txt") -ErrorAction SilentlyContinue
+          $process = Start-Process -FilePath "dist/ReceitaLocal/ReceitaLocal.exe" -PassThru
+          try {
+            $endereco = Join-Path $data "ENDERECO_DO_APLICATIVO.txt"
+            $url = $null
+            1..90 | ForEach-Object {
+              if (-not $url -and (Test-Path $endereco)) { $url = (Get-Content $endereco -First 1).Trim() }
+              if (-not $url) { Start-Sleep -Seconds 1 }
+            }
+            if (-not $url) { throw "O executável não publicou o endereço" }
+            python tools/verificar_interface.py --url $url
+            if ($LASTEXITCODE -ne 0) { throw "A interface do executável não passou na verificação" }
+          } finally {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            Get-Process ReceitaLocal -ErrorAction SilentlyContinue | Stop-Process -Force
+          }
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: capturas-falha-windows
+          path: capturas-verificacao/
+          if-no-files-found: ignore
 
       - name: Diagnóstico quando o smoke test falha
         if: failure()

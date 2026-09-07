@@ -128,8 +128,12 @@ Verificado automaticamente a cada execução do workflow (24 testes):
 - repetibilidade com as mesmas entradas, persistência entre reinicializações e
   exportações Excel/PDF consistentes com a tela;
 - as sete telas renderizam sem stack trace;
-- no runner Windows: build `onedir`, execução do `.exe` e resposta em
-  `http://127.0.0.1:<porta>/_stcore/health`.
+- **verificação em navegador real**, no Linux contra a aplicação e no Windows
+  contra o `.exe` empacotado: a interface carrega, as sete telas existem, o modo
+  demonstração roda, a receita é gerada com os rótulos em português e o histórico
+  oferece as exportações. Uma resposta HTTP 200 não prova nada disso;
+- no runner Windows: build `onedir`, execução do `.exe` com porta fixa e com porta
+  dinâmica, e a página inicial servida com 200.
 
 Verificado manualmente contra os três arquivos do estudo de caso (não versionados):
 219 registros de processo, 966 de laboratório, 19 requisitos do PDF e 3 ordens de
