@@ -35,18 +35,31 @@ tem permissão de escrita no repositório, se Actions está habilitado em
 
 1. Localize o arquivo baixado. Dependendo do navegador, ele pode conter outro ZIP
    chamado `ReceitaLocal-0.1.0-win-x64.zip`; extraia também esse ZIP.
-2. Extraia **todo** o conteúdo para uma pasta local gravável. Não execute o
+2. **Antes de extrair**, clique com o botão direito no ZIP → **Propriedades** →
+   marque **Desbloquear** → **OK**. Isso remove a marca de "arquivo baixado da
+   internet" de todo o conteúdo de uma vez e evita o aviso do SmartScreen.
+3. Extraia **todo** o conteúdo para uma pasta local gravável. Não execute o
    programa diretamente dentro do ZIP.
-3. Entre na pasta `ReceitaLocal` extraída e dê dois cliques em
-   `ReceitaLocal.exe`. Não é necessário instalar Python, usar terminal ou executar
-   como administrador.
-4. Aguarde o navegador padrão abrir uma página em `http://127.0.0.1:<porta>`.
+4. Entre na pasta `ReceitaLocal` extraída e dê dois cliques em
+   `ReceitaLocal.exe`. Não é necessário instalar nada: o aplicativo é portátil e
+   não precisa de Python, terminal nem permissão de administrador.
+5. Aguarde o navegador padrão abrir uma página em `http://127.0.0.1:<porta>`.
    A porta é escolhida automaticamente e pode não ser `8501`.
-5. Para encerrar corretamente, use **Encerrar aplicativo** na barra lateral.
+6. Para encerrar corretamente, use **Encerrar aplicativo** na barra lateral.
    Fechar apenas a aba do navegador não encerra o servidor local.
 
-Se o Windows corporativo bloquear o executável, encaminhe o ZIP à equipe de TI.
-Não tente contornar SmartScreen, antivírus ou políticas da empresa.
+### Diferença entre aviso e bloqueio
+
+- **"O Windows protegeu o computador"** é o SmartScreen, um *aviso* de reputação
+  para programas novos. Há **Mais informações → Executar assim mesmo**, e a
+  existência desse botão indica que a política da empresa permite executar.
+  Desbloquear o ZIP no passo 2 normalmente evita que esse aviso apareça.
+- **"Bloqueado pelo administrador do sistema"** é uma *política corporativa*
+  (AppLocker/WDAC). Nesse caso encaminhe o ZIP à TI. Não tente contornar
+  SmartScreen, antivírus ou políticas da empresa.
+- **Antivírus removeu o arquivo**: falso positivo conhecido de executáveis
+  empacotados com PyInstaller. A TI consegue liberar pelo hash; a solução
+  definitiva é assinatura de código.
 
 ### 3. Fazer um teste rápido sem dados da empresa
 

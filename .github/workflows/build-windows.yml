@@ -80,8 +80,21 @@ jobs:
         run: |
           @"
           ## Aplicativo pronto para baixar
-          Abra **Artifacts** nesta execução, baixe **ReceitaLocal-Windows-x64**, extraia o ZIP e execute `ReceitaLocal.exe`.
 
-          O executável abre automaticamente a aplicação no navegador usando uma URL `http://127.0.0.1:<porta>`.
-          Essa URL é local ao computador e mantém os arquivos industriais fora da internet.
+          1. Abra **Artifacts** nesta execução e baixe **ReceitaLocal-Windows-x64**.
+          2. **Antes de extrair**, clique com o botão direito no ZIP baixado -> **Propriedades** ->
+             marque **Desbloquear** -> **OK**. Isso remove a marca de "baixado da internet" de todo o
+             conteúdo de uma vez e evita o aviso do SmartScreen na primeira execução.
+          3. Extraia tudo para uma pasta local gravável e execute ``ReceitaLocal.exe``.
+             O aplicativo é portátil: não instala nada e não pede administrador.
+
+          Se ainda aparecer **"O Windows protegeu o computador"**, é apenas o aviso de reputação do
+          SmartScreen: **Mais informações** -> **Executar assim mesmo**. Se em vez disso a mensagem
+          disser que o aplicativo foi **bloqueado pelo administrador do sistema**, aí é política
+          corporativa (AppLocker/WDAC) e o caminho é falar com a TI.
+
+          O executável abre a aplicação no navegador em ``http://127.0.0.1:<porta>``. Essa URL é local
+          ao computador e mantém os arquivos industriais fora da internet.
+
+          O histórico de análises fica em ``%LOCALAPPDATA%\ReceitasProcesso`` e sobrevive à troca de versão.
           "@ | Add-Content $env:GITHUB_STEP_SUMMARY
