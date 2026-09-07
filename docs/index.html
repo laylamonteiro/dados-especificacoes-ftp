@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Receita Local — prévia da interface</title>
+<style>
+  :root { color-scheme: light dark; --fundo:#fbfaf9; --texto:#1c1b19; --suave:#5f5c57;
+          --borda:#e2ded8; --cartao:#fff; --destaque:#8a5a2b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fundo:#16150f; --texto:#efece6; --suave:#a8a49c; --borda:#2e2b25; --cartao:#1d1b16; --destaque:#d9a066; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--fundo); color:var(--texto); font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .envelope { max-width:1180px; margin:0 auto; padding:48px 24px 80px; }
+  h1 { font-size:2rem; margin:0 0 8px; letter-spacing:-.02em; }
+  .sub { color:var(--suave); margin:0 0 28px; max-width:62ch; }
+  .aviso { border:1px solid var(--borda); border-left:4px solid var(--destaque); background:var(--cartao);
+           padding:16px 20px; border-radius:8px; margin-bottom:40px; }
+  .aviso strong { color:var(--destaque); }
+  .grade { display:grid; gap:40px; }
+  .tela { margin:0; background:var(--cartao); border:1px solid var(--borda); border-radius:12px; overflow:hidden; }
+  .tela img { display:block; width:100%; height:auto; border-bottom:1px solid var(--borda); }
+  figcaption { padding:16px 20px; display:flex; flex-direction:column; gap:4px; }
+  figcaption span { color:var(--suave); font-size:.92rem; }
+  footer { margin-top:56px; padding-top:24px; border-top:1px solid var(--borda); color:var(--suave); font-size:.9rem; }
+  code { background:var(--fundo); padding:2px 6px; border-radius:4px; font-size:.88em; }
+</style>
+</head>
+<body>
+<div class="envelope">
+  <h1>Receita Local — prévia da interface</h1>
+  <p class="sub">Telas capturadas da aplicação em execução, para ver a cara do programa sem instalar nada.
+  A aplicação de verdade roda no computador do usuário e abre em <code>http://127.0.0.1:8531</code>.</p>
+
+  <div class="aviso">
+    <strong>Somente dados sintéticos.</strong> Todas as capturas usam o modo demonstração do aplicativo.
+    Nenhum arquivo de produção, resultado laboratorial ou especificação real aparece aqui.
+    Esta página é uma prévia visual: não processa arquivos e não substitui o aplicativo.
+  </div>
+
+  <div class="grade">
+    <figure class="tela">
+      <a href="telas/produtos.png"><img src="telas/produtos.png" alt="Produtos e análises" loading="lazy"></a>
+      <figcaption><strong>Produtos e análises</strong><span>Lista de análises já realizadas, com o alias do produto.</span></figcaption>
+    </figure>
+    <figure class="tela">
+      <a href="telas/nova-analise.png"><img src="telas/nova-analise.png" alt="Nova análise" loading="lazy"></a>
+      <figcaption><strong>Nova análise</strong><span>Seleção dos três arquivos e carga da demonstração sintética.</span></figcaption>
+    </figure>
+    <figure class="tela">
+      <a href="telas/revisao.png"><img src="telas/revisao.png" alt="Revisão da importação" loading="lazy"></a>
+      <figcaption><strong>Revisão da importação</strong><span>Aba, linha de cabeçalho, registros aceitos e motivo de cada exclusão.</span></figcaption>
+    </figure>
+    <figure class="tela">
+      <a href="telas/regras.png"><img src="telas/regras.png" alt="Regras e hipóteses" loading="lazy"></a>
+      <figcaption><strong>Regras e hipóteses</strong><span>Parâmetros, separação de condições e requisitos lidos da especificação.</span></figcaption>
+    </figure>
+    <figure class="tela">
+      <a href="telas/diagnostico.png"><img src="telas/diagnostico.png" alt="Diagnóstico dos dados" loading="lazy"></a>
+      <figcaption><strong>Diagnóstico dos dados</strong><span>Qualidade por propriedade e modo vinculado.</span></figcaption>
+    </figure>
+    <figure class="tela">
+      <a href="telas/receita.png"><img src="telas/receita.png" alt="Receita proposta" loading="lazy"></a>
+      <figcaption><strong>Receita proposta</strong><span>Faixas, evidências e pendências da proposta exploratória.</span></figcaption>
+    </figure>
+    <figure class="tela">
+      <a href="telas/historico.png"><img src="telas/historico.png" alt="Histórico e exportação" loading="lazy"></a>
+      <figcaption><strong>Histórico e exportação</strong><span>Versões preservadas e exportação em Excel e PDF.</span></figcaption>
+    </figure>
+  </div>
+
+  <footer>Gerado automaticamente a partir da versão 9a8cf15.</footer>
+</div>
+</body>
+</html>

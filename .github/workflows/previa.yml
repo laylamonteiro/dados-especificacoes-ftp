@@ -1,27 +1,25 @@
-name: Publicar prévia da interface
+name: Conferir a prévia da interface
+
+# O GitHub Pages está configurado para publicar a partir do branch, então as
+# capturas versionadas em docs/ é que vão ao ar. Este workflow não publica: ele
+# regenera a prévia e confirma que continua correta e sem dado real.
 
 on:
   workflow_dispatch:
   push:
-    branches: [release, main]
+    branches: [release, main, 'claude/**']
+    paths:
+      - 'src/receita_local/ui/**'
+      - 'tools/gerar_previa.py'
+      - '.github/workflows/previa.yml'
 
 permissions:
   contents: read
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
-  previa:
-    name: Capturar telas e publicar
+  conferir:
+    name: Regenerar e conferir
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,20 +31,21 @@ jobs:
           python -m pip install -r requirements-dev.txt
           python -m pip install playwright==1.55.0
           python -m playwright install --with-deps chromium
-      - name: Capturar as telas do modo demonstração
-        run: python tools/gerar_previa.py --destino site --versao "0.1.0+${GITHUB_SHA::7}"
+      - name: Regenerar a prévia
+        run: python tools/gerar_previa.py --destino site --versao "${GITHUB_SHA::7}"
       - name: Conferir que só há dados sintéticos
         run: |
           test -f site/index.html
-          ls -la site/telas/
-          # Falha se qualquer identificador real tiver escapado para a prévia.
+          test "$(ls site/telas/*.png | wc -l)" -eq 7
           ! grep -rilE "KSEA8BR45|KSEI8BR45|Gama|Jacarei|Jacareí" site/ || {
             echo "Identificador real encontrado na prévia"; exit 1; }
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+          echo "Prévia regenerada com 7 telas e sem identificador real."
+      - name: Avisar se as capturas publicadas estão desatualizadas
+        run: |
+          if ! diff -q <(ls site/telas) <(ls docs/telas) >/dev/null; then
+            echo "::warning::As capturas em docs/telas/ divergem da prévia regenerada."
+          fi
+      - uses: actions/upload-artifact@v4
         with:
-          path: site
-      - id: deploy
-        uses: actions/deploy-pages@v4
-      - name: Link no resumo
-        run: echo "## Prévia publicada em ${{ steps.deploy.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          name: previa-regenerada
+          path: site/

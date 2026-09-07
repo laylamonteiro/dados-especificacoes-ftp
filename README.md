@@ -20,7 +20,13 @@ Esse link não expira e não muda a cada versão — pode ser guardado nos favor
 Cada envio para `main` publica uma release nova automaticamente.
 
 Existe também uma [prévia visual da interface](https://laylamonteiro.github.io/dados-especificacoes-ftp/),
-gerada com dados sintéticos, para ver as telas sem instalar nada.
+com capturas reais da aplicação usando dados sintéticos, para ver as telas sem
+instalar nada. As imagens ficam em `docs/` e são publicadas pelo GitHub Pages a
+partir do branch; para atualizá-las depois de mexer na interface, rode:
+
+```bash
+python tools/gerar_previa.py --destino docs --versao "$(git rev-parse --short HEAD)"
+```
 
 ### 1. Gerar o ZIP no GitHub (alternativa, durante o desenvolvimento)
 
