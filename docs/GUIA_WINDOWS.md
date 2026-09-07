@@ -65,6 +65,22 @@ Esse arquivo só existe enquanto o aplicativo está aberto. Se ele não aparecer
 programa não chegou a subir: veja `logs\launcher.log` na mesma pasta.
 
 Endereços como `localhost:3000` ou `localhost:8501` **não** são desta aplicação.
+A porta nunca é fixa e fica na faixa alta (49152 a 65535).
+
+### Se o endereço certo também falhar: proxy da empresa
+
+Em rede corporativa o navegador às vezes é configurado para mandar **todo**
+endereço ao proxy da empresa, inclusive os locais. Nesse caso a aplicação está no
+ar, mas o navegador pergunta ao proxy em vez de perguntar ao próprio computador,
+e a resposta vem como erro ou 404.
+
+O aplicativo detecta essa configuração sozinho: se for o caso, o
+`ENDERECO_DO_APLICATIVO.txt` traz um aviso no fim explicando isso.
+
+A correção é da TI e é simples de pedir: **incluir `127.0.0.1`, `localhost` e
+`<-loopback>` na lista de exceções do proxy**. É a configuração padrão
+recomendada pela própria Microsoft para aplicações locais, e não abre exceção
+nenhuma na navegação da empresa.
 
 ## Atualizar para uma versão nova
 

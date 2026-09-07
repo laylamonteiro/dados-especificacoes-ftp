@@ -6,6 +6,31 @@ from pathlib import Path
 from receita_local.storage.repository import data_dir
 
 
+def direct_opener() -> urllib.request.OpenerDirector:
+    """Consulta o servidor local sem passar por proxy.
+
+    Em rede corporativa o proxy do sistema costuma capturar até o loopback. Sem
+    isto o health check conversaria com o proxy, e uma resposta dele faria o
+    launcher abrir o navegador acreditando que a aplicação subiu.
+    """
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def loopback_proxy_warning() -> str:
+    """Aviso quando o navegador provavelmente não alcançará 127.0.0.1."""
+    proxies = {k: v for k, v in urllib.request.getproxies().items() if k in ("http", "https")}
+    if not proxies:
+        return ""
+    try:
+        if urllib.request.proxy_bypass("127.0.0.1"):
+            return ""
+    except Exception:
+        return ""
+    return ("ATENÇÃO: este computador usa um proxy de rede que não está configurado para ignorar\n"
+            "endereços locais. O navegador pode devolver erro ou 404 mesmo com a aplicação no ar.\n"
+            "Peça à TI para incluir 127.0.0.1, localhost e <-loopback> na lista de exceções do proxy.\n")
+
+
 def free_port() -> int:
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0)); return sock.getsockname()[1]
@@ -47,7 +72,8 @@ def publish_address(root: Path, port: int) -> Path:
     marker.write_text(
         f"http://127.0.0.1:{port}\n\n"
         "Cole este endereço no navegador se a aplicação não abrir sozinha.\n"
-        "Ele vale apenas enquanto o ReceitaLocal.exe estiver aberto e só funciona neste computador.\n",
+        "Ele vale apenas enquanto o ReceitaLocal.exe estiver aberto e só funciona neste computador.\n"
+        f"\n{loopback_proxy_warning()}",
         encoding="utf-8")
     return marker
 
@@ -61,7 +87,7 @@ def main() -> int:
     if lock.exists():
         try:
             pid, port = lock.read_text().split(":")
-            urllib.request.urlopen(f"http://127.0.0.1:{port}/_stcore/health", timeout=1)
+            direct_opener().open(f"http://127.0.0.1:{port}/_stcore/health", timeout=1)
             publish_address(root, int(port))
             webbrowser.open(f"http://127.0.0.1:{port}"); return 0
         except Exception: lock.unlink(missing_ok=True)
@@ -76,12 +102,15 @@ def main() -> int:
     else:
         cmd = [sys.executable, "-m", "streamlit", "run", str(app), "--server.address", "127.0.0.1", "--server.port", str(port), "--server.headless", "true", "--browser.gatherUsageStats", "false"]
     log = open(logs / "launcher.log", "a", encoding="utf-8")
+    warning = loopback_proxy_warning()
+    if warning: log.write(warning); log.flush()
+    opener = direct_opener()
     process = subprocess.Popen(cmd, stdout=log, stderr=log)
     try:
         for _ in range(120):
             if process.poll() is not None: raise RuntimeError("O servidor encerrou durante a inicialização. Consulte logs/launcher.log.")
             try:
-                urllib.request.urlopen(f"http://127.0.0.1:{port}/_stcore/health", timeout=.5); break
+                opener.open(f"http://127.0.0.1:{port}/_stcore/health", timeout=.5); break
             except Exception: time.sleep(.25)
         else: raise RuntimeError("Tempo esgotado ao iniciar a interface.")
         publish_address(root, port)
@@ -93,7 +122,7 @@ def main() -> int:
         return 0
     except Exception as exc:
         log.write(f"Falha de inicialização: {exc}\n"); log.flush()
-        show_error(f"{exc}\n\nDetalhes em: {logs / 'launcher.log'}")
+        show_error(f"{exc}\n\n{warning}Detalhes em: {logs / 'launcher.log'}")
         return 1
     finally:
         lock.unlink(missing_ok=True); stop.unlink(missing_ok=True)

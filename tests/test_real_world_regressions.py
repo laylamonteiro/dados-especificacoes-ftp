@@ -6,6 +6,8 @@ requisitos do PDF com limites unilaterais.
 """
 from __future__ import annotations
 
+import socket
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -143,3 +145,56 @@ def test_quantis_incoerentes_sao_recusados_em_vez_de_gerar_faixa_invertida():
     recipe = generate_exploratory_recipe(frame, [ParameterRule("a")], qlow=.1, qhigh=.9)
     item = recipe.items[0]
     assert item.lower <= item.target <= item.upper
+
+
+def test_health_check_alcanca_o_servidor_local_apesar_do_proxy(monkeypatch):
+    """Em rede corporativa o proxy captura até o loopback. Sem contorná-lo o health
+    check conversaria com o proxy, e uma resposta dele faria o launcher abrir o
+    navegador acreditando que a aplicação subiu."""
+    import threading
+    import urllib.error
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    from receita_local.launcher.main import direct_opener
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200); self.end_headers(); self.wfile.write(b"ok")
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{server.server_address[1]}/_stcore/health"
+    try:
+        # Proxy apontando para uma porta fechada: quem passar por ele falha.
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0)); dead = probe.getsockname()[1]
+        for name in ("http_proxy", "HTTP_PROXY", "https_proxy", "HTTPS_PROXY"):
+            monkeypatch.setenv(name, f"http://127.0.0.1:{dead}")
+        for name in ("no_proxy", "NO_PROXY"):
+            monkeypatch.setenv(name, "")
+
+        assert direct_opener().open(url, timeout=5).read() == b"ok"
+
+        with pytest.raises(urllib.error.URLError):
+            urllib.request.urlopen(url, timeout=5)   # comportamento anterior
+    finally:
+        server.shutdown(); server.server_close()
+
+
+def test_aviso_de_proxy_so_aparece_quando_o_loopback_seria_capturado(monkeypatch):
+    from receita_local.launcher import main
+
+    monkeypatch.setattr(main.urllib.request, "getproxies", dict)
+    assert main.loopback_proxy_warning() == "", "sem proxy não pode haver aviso falso"
+
+    monkeypatch.setattr(main.urllib.request, "getproxies", lambda: {"http": "http://proxy.corp:8080"})
+    monkeypatch.setattr(main.urllib.request, "proxy_bypass", lambda host: True)
+    assert main.loopback_proxy_warning() == "", "proxy com bypass de loopback está correto"
+
+    monkeypatch.setattr(main.urllib.request, "proxy_bypass", lambda host: False)
+    warning = main.loopback_proxy_warning()
+    assert "proxy" in warning.lower() and "127.0.0.1" in warning
