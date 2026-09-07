@@ -18,6 +18,19 @@ def _safe(value: Any) -> Any:
     return "PENDENTE" if value is None else value
 
 
+# A planilha é lida por quem opera a máquina: os cabeçalhos acompanham a interface.
+COLUMN_LABELS = {
+    "machine": "Máquina", "parameter": "Parâmetro", "unit": "Unidade", "target": "Target",
+    "lower": "Limite inferior", "upper": "Limite superior", "conditions": "Condições de aplicação",
+    "origin": "Origem da recomendação", "evidence": "Evidências", "status": "Status",
+    "requisito": "Requisito", "propriedade": "Propriedade", "etapa": "Etapa", "critério": "Critério",
+    "resultados": "Resultados avaliados", "fora_do_limite": "Fora do limite",
+    "total_registros": "Total de registros", "limite_inferior": "Limite inferior",
+    "limite_superior": "Limite superior", "coluna": "Coluna do laboratório",
+    "seções": "Seções", "observação": "Observação", "texto": "Texto", "campo": "Campo", "valor": "Valor",
+}
+
+
 def excel_bytes(result: dict, metadata: dict) -> bytes:
     stream = io.BytesIO()
     sheets = {
@@ -30,7 +43,8 @@ def excel_bytes(result: dict, metadata: dict) -> bytes:
     }
     with pd.ExcelWriter(stream, engine="openpyxl") as writer:
         for name, rows in sheets.items():
-            safe = [{k: _safe(v) for k, v in row.items()} for row in rows] or [{"informacao": "SEM REGISTROS"}]
+            safe = [{COLUMN_LABELS.get(k, k): _safe(v) for k, v in row.items()} for row in rows] \
+                or [{"Informação": "SEM REGISTROS"}]
             pd.DataFrame(safe).to_excel(writer, sheet_name=name[:31], index=False)
             ws = writer.book[name[:31]]; ws.freeze_panes = "A2"; ws.auto_filter.ref = ws.dimensions
             for cell in ws[1]: cell.font = Font(bold=True)
