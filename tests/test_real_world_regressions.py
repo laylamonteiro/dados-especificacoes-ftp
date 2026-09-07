@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import inspect
 import socket
+import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -267,3 +269,34 @@ def test_porta_preferida_torna_o_endereco_previsivel(monkeypatch):
 
     monkeypatch.setenv("RECEITA_FIXED_PORT", "9099")
     assert launcher.choose_port() == 9099, "porta exigida explicitamente tem precedência"
+
+
+def test_todo_subpacote_tem_init_para_o_empacotamento():
+    """Sem __init__.py o PyInstaller não enxerga o subpacote e o executável leva um
+    receita_local incompleto, que derruba a interface com ModuleNotFoundError."""
+    raiz = Path(__file__).resolve().parents[1] / "src" / "receita_local"
+    sem_init = sorted(
+        str(d.relative_to(raiz)) for d in raiz.iterdir()
+        if d.is_dir() and d.name != "__pycache__" and not (d / "__init__.py").exists())
+    assert not sem_init, f"subpacotes sem __init__.py: {sem_init}"
+
+
+def test_o_pacote_windows_declara_todos_os_modulos_da_aplicacao():
+    """O launcher importa apenas storage; o resto entra pelo app.py em tempo de
+    execução. O spec precisa declará-los, senão faltam no executável."""
+    from PyInstaller.utils.hooks import collect_submodules
+
+    caminho = str(Path(__file__).resolve().parents[1] / "src")
+    if caminho not in sys.path:
+        sys.path.insert(0, caminho)
+    coletados = set(collect_submodules("receita_local"))
+    essenciais = {
+        "receita_local.analysis.engine", "receita_local.domain.models",
+        "receita_local.domain.rules", "receita_local.exports.writers",
+        "receita_local.importers.excel", "receita_local.importers.pdf",
+        "receita_local.storage.repository", "receita_local.ui.app",
+    }
+    assert essenciais <= coletados, f"não seriam empacotados: {sorted(essenciais - coletados)}"
+
+    spec = (Path(__file__).resolve().parents[1] / "ReceitaLocal.spec").read_text(encoding="utf-8")
+    assert 'collect_submodules("receita_local")' in spec, "o spec precisa coletar os submódulos"
