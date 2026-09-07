@@ -81,6 +81,8 @@ def generate_exploratory_recipe(frame: pd.DataFrame, rules: list[ParameterRule],
                                 time_column: str | None = None,
                                 condition_columns: list[str] | None = None,
                                 max_gap_minutes: float = 180) -> AnalysisResult:
+    if not 0 <= qlow < qhigh <= 1:
+        raise ValueError(f"Quantis incoerentes: o inferior ({qlow:g}) precisa ser menor que o superior ({qhigh:g}).")
     if frame.empty:
         return AnalysisResult("exploratório", [], pending=["Nenhum registro de processo aceito"])
 

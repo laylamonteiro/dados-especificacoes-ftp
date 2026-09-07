@@ -134,3 +134,12 @@ def test_qualidade_sem_mapeamento_confirmado_fica_inconclusiva():
     com_mapa = evaluate_quality_columns(lab, [gramatura], {gramatura.key: "Gramatura."}, section_column="Seção")
     assert com_mapa[0]["status"] == "não conforme" and com_mapa[0]["fora_do_limite"] == 1
     assert com_mapa[0]["seções"] == "S1, S2"
+
+
+def test_quantis_incoerentes_sao_recusados_em_vez_de_gerar_faixa_invertida():
+    frame = pd.DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
+    with pytest.raises(ValueError, match="Quantis incoerentes"):
+        generate_exploratory_recipe(frame, [ParameterRule("a")], qlow=.9, qhigh=.1)
+    recipe = generate_exploratory_recipe(frame, [ParameterRule("a")], qlow=.1, qhigh=.9)
+    item = recipe.items[0]
+    assert item.lower <= item.target <= item.upper
