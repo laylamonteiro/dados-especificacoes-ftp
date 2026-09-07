@@ -40,15 +40,29 @@ def show_error(message: str) -> None:
                         f"[System.Windows.MessageBox]::Show('{safe}','Receita Local')"], check=False)
 
 
+def publish_address(root: Path, port: int) -> Path:
+    """Deixa o endereço em disco: se o navegador abrir a aba errada ou não abrir,
+    o usuário tem onde encontrar a URL sem depender de terminal."""
+    marker = root / "ENDERECO_DO_APLICATIVO.txt"
+    marker.write_text(
+        f"http://127.0.0.1:{port}\n\n"
+        "Cole este endereço no navegador se a aplicação não abrir sozinha.\n"
+        "Ele vale apenas enquanto o ReceitaLocal.exe estiver aberto e só funciona neste computador.\n",
+        encoding="utf-8")
+    return marker
+
+
 def main() -> int:
     root = data_dir()
     logs = root / "logs"
     logs.mkdir(parents=True, exist_ok=True)
     lock, stop = root / "application.lock", root / "stop.request"
+    address = root / "ENDERECO_DO_APLICATIVO.txt"
     if lock.exists():
         try:
             pid, port = lock.read_text().split(":")
             urllib.request.urlopen(f"http://127.0.0.1:{port}/_stcore/health", timeout=1)
+            publish_address(root, int(port))
             webbrowser.open(f"http://127.0.0.1:{port}"); return 0
         except Exception: lock.unlink(missing_ok=True)
     configured_port = os.environ.get("RECEITA_FIXED_PORT")
@@ -70,6 +84,8 @@ def main() -> int:
                 urllib.request.urlopen(f"http://127.0.0.1:{port}/_stcore/health", timeout=.5); break
             except Exception: time.sleep(.25)
         else: raise RuntimeError("Tempo esgotado ao iniciar a interface.")
+        publish_address(root, port)
+        log.write(f"Aplicação disponível em http://127.0.0.1:{port}\n"); log.flush()
         if os.environ.get("RECEITA_NO_BROWSER") != "1":
             webbrowser.open(f"http://127.0.0.1:{port}")
         while process.poll() is None and not stop.exists(): time.sleep(.5)
@@ -80,7 +96,9 @@ def main() -> int:
         show_error(f"{exc}\n\nDetalhes em: {logs / 'launcher.log'}")
         return 1
     finally:
-        lock.unlink(missing_ok=True); stop.unlink(missing_ok=True); log.close()
+        lock.unlink(missing_ok=True); stop.unlink(missing_ok=True)
+        address.unlink(missing_ok=True)   # endereço vencido confunde mais do que ajuda
+        log.close()
 
 
 if __name__ == "__main__":

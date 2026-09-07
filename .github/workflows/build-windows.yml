@@ -65,6 +65,42 @@ jobs:
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
             Get-Process ReceitaLocal -ErrorAction SilentlyContinue | Stop-Process -Force
           }
+      - name: Smoke test com porta dinâmica (caminho real do usuário)
+        shell: pwsh
+        run: |
+          # Sem RECEITA_FIXED_PORT: é assim que o aplicativo roda na máquina de destino.
+          $env:RECEITA_NO_BROWSER = "1"
+          Remove-Item Env:RECEITA_FIXED_PORT -ErrorAction SilentlyContinue
+          $data = Join-Path $env:LOCALAPPDATA "ReceitasProcesso"
+          Remove-Item (Join-Path $data "application.lock") -ErrorAction SilentlyContinue
+          $process = Start-Process -FilePath "dist/ReceitaLocal/ReceitaLocal.exe" -PassThru
+          try {
+            $address = Join-Path $data "ENDERECO_DO_APLICATIVO.txt"
+            $url = $null
+            1..90 | ForEach-Object {
+              if (-not $url -and (Test-Path $address)) { $url = (Get-Content $address -First 1).Trim() }
+              if (-not $url) { Start-Sleep -Seconds 1 }
+            }
+            if (-not $url) { throw "O aplicativo não publicou o endereço em ENDERECO_DO_APLICATIVO.txt" }
+            Write-Host "Endereço publicado: $url"
+            if ($url -notmatch '^http://127\.0\.0\.1:\d+$') { throw "Endereço fora de 127.0.0.1: $url" }
+            $port = [int]($url -split ':')[2]
+            if ($port -lt 1024) { throw "Porta privilegiada inesperada: $port" }
+            $ok = $false
+            1..60 | ForEach-Object {
+              if (-not $ok) {
+                try {
+                  if ((Invoke-WebRequest "$url/_stcore/health" -UseBasicParsing -TimeoutSec 1).StatusCode -eq 200) { $ok = $true }
+                } catch { Start-Sleep -Seconds 1 }
+              }
+            }
+            if (-not $ok) { throw "A porta dinâmica $port não respondeu" }
+            Write-Host "Porta dinâmica $port respondeu em /_stcore/health"
+          } finally {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            Get-Process ReceitaLocal -ErrorAction SilentlyContinue | Stop-Process -Force
+          }
+
       - name: Criar ZIP
         shell: pwsh
         run: Compress-Archive -Path dist/ReceitaLocal -DestinationPath dist/ReceitaLocal-0.1.0-win-x64.zip -Force

@@ -43,6 +43,29 @@ conhecido de aplicativos empacotados com PyInstaller, e eles conseguem liberar.
    qualidade. Em **Receita proposta**, gere a proposta.
 5. Baixe Excel/PDF. Use **Encerrar aplicativo** na lateral; fechar a aba não encerra.
 
+## Se o navegador abrir e der "connection refused" ou "não é possível acessar esse site"
+
+Antes de mais nada, **confira as outras abas do navegador**. Se ele estiver
+configurado para restaurar a sessão anterior, a aba com erro pode ser de outro
+site aberto antes, e a aba da aplicação estar ao lado.
+
+O endereço correto muda a cada execução, porque o aplicativo escolhe uma porta
+livre. Para descobrir o endereço em uso:
+
+1. Com o `ReceitaLocal.exe` aberto, cole isto na barra de endereços do Explorador
+   de Arquivos e tecle Enter:
+
+       %LOCALAPPDATA%\ReceitasProcesso
+
+2. Abra o arquivo **`ENDERECO_DO_APLICATIVO.txt`**. A primeira linha é o endereço,
+   algo como `http://127.0.0.1:52341`.
+3. Copie essa linha e cole no navegador.
+
+Esse arquivo só existe enquanto o aplicativo está aberto. Se ele não aparecer, o
+programa não chegou a subir: veja `logs\launcher.log` na mesma pasta.
+
+Endereços como `localhost:3000` ou `localhost:8501` **não** são desta aplicação.
+
 ## Atualizar para uma versão nova
 
 Baixe o ZIP novo, desbloqueie, extraia por cima ou em outra pasta e abra o
