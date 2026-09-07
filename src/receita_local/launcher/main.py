@@ -121,6 +121,9 @@ def main() -> int:
             publish_address(root, int(port))
             webbrowser.open(f"http://127.0.0.1:{port}"); return 0
         except Exception: lock.unlink(missing_ok=True)
+    # Encerramento forçado (Gerenciador de Tarefas, queda) pula a limpeza do finally.
+    # Um endereço vencido em disco levaria o usuário a uma porta morta.
+    address.unlink(missing_ok=True)
     configured_port = os.environ.get("RECEITA_FIXED_PORT")
     port = int(configured_port) if configured_port else free_port()
     stop.unlink(missing_ok=True); lock.write_text(f"{os.getpid()}:{port}")

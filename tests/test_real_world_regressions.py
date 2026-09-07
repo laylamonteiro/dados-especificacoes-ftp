@@ -227,3 +227,22 @@ def test_streamlit_em_modo_desenvolvimento_recusaria_a_porta_escolhida():
         "o padrão do Streamlit depende do caminho do pacote; dentro do PyInstaller "
         "nenhum dos marcadores existe e o modo desenvolvimento é ligado"
     )
+
+
+def test_endereco_obsoleto_nao_sobrevive_a_um_encerramento_forcado(tmp_path, monkeypatch):
+    """Stop-Process/Gerenciador de Tarefas pula a limpeza do finally. Um endereço
+    vencido em disco mandaria o usuário para uma porta morta."""
+    from receita_local.launcher import main as launcher
+
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    root = launcher.data_dir(); root.mkdir(parents=True, exist_ok=True)
+    stale = launcher.publish_address(root, 8501)
+    assert stale.exists()
+
+    # Falha proposital logo após a limpeza inicial, sem subir servidor nenhum.
+    monkeypatch.setattr(launcher, "free_port", lambda: (_ for _ in ()).throw(RuntimeError("parar aqui")))
+    monkeypatch.setattr(launcher, "show_error", lambda message: None)
+    with pytest.raises(RuntimeError, match="parar aqui"):
+        launcher.main()
+    assert not stale.exists(), "o endereço obsoleto precisa ser removido antes de tentar subir"
