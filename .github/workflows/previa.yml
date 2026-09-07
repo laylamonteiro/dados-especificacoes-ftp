@@ -3,7 +3,7 @@ name: Publicar prévia da interface
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [release, main]
 
 permissions:
   contents: read

@@ -3,7 +3,7 @@ name: Validar e empacotar para Windows
 on:
   workflow_dispatch:
   push:
-    branches: [main, work, 'claude/**']
+    branches: [release, main, 'claude/**']
   pull_request:
 
 permissions:
@@ -149,7 +149,7 @@ jobs:
           retention-days: 30
           compression-level: 6
       - name: Publicar release com link permanente
-        if: github.ref == 'refs/heads/main'
+        if: github.ref_name == github.event.repository.default_branch
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
