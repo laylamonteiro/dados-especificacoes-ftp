@@ -6,6 +6,7 @@ requisitos do PDF com limites unilaterais.
 """
 from __future__ import annotations
 
+import inspect
 import socket
 
 import numpy as np
@@ -198,3 +199,31 @@ def test_aviso_de_proxy_so_aparece_quando_o_loopback_seria_capturado(monkeypatch
     monkeypatch.setattr(main.urllib.request, "proxy_bypass", lambda host: False)
     warning = main.loopback_proxy_warning()
     assert "proxy" in warning.lower() and "127.0.0.1" in warning
+
+
+def test_launcher_desliga_o_modo_desenvolvimento_do_streamlit():
+    """Dentro do PyInstaller o caminho do pacote não contém site-packages, então o
+    Streamlit liga global.developmentMode sozinho: passa a ignorar a porta pedida,
+    escuta na 8501, devolve 404 em `/` e manda o navegador para a 3000 do servidor
+    Node de desenvolvimento, que não existe no pacote."""
+    from receita_local.launcher.main import streamlit_environment
+
+    env = streamlit_environment(54321)
+    assert env["STREAMLIT_GLOBAL_DEVELOPMENT_MODE"] == "false"
+    assert env["STREAMLIT_SERVER_PORT"] == "54321"
+    assert env["STREAMLIT_SERVER_ADDRESS"] == "127.0.0.1"
+
+
+def test_streamlit_em_modo_desenvolvimento_recusaria_a_porta_escolhida():
+    """Prova a condição que a configuração acima evita, na própria biblioteca."""
+    from streamlit import config
+
+    source = inspect.getsource(config._check_conflicts)
+    assert "server.port does not work when global.developmentMode is true" in source
+    # _global_development_mode é decorado e vira um ConfigOption; lemos o módulo.
+    module = inspect.getsource(config)
+    default = module[module.index("def _global_development_mode"):][:600]
+    assert "site-packages" in default and "dist-packages" in default, (
+        "o padrão do Streamlit depende do caminho do pacote; dentro do PyInstaller "
+        "nenhum dos marcadores existe e o modo desenvolvimento é ligado"
+    )

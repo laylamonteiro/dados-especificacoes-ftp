@@ -31,6 +31,27 @@ def loopback_proxy_warning() -> str:
             "Peça à TI para incluir 127.0.0.1, localhost e <-loopback> na lista de exceções do proxy.\n")
 
 
+def streamlit_environment(port: int) -> dict[str, str]:
+    """Configuração do Streamlit via variáveis de ambiente.
+
+    `global.developmentMode` é ligado quando o caminho do pacote não contém
+    site-packages/dist-packages, o que é sempre o caso dentro do PyInstaller. Nesse
+    modo o Streamlit ignora a porta pedida, escuta na 8501 e devolve 404 em `/`,
+    mandando o navegador para a 3000 do servidor Node de desenvolvimento, que não
+    existe no pacote. Precisa ser desligado explicitamente.
+
+    As variáveis são lidas pela própria camada de configuração do Streamlit, o que
+    funciona tanto no processo filho empacotado quanto no `streamlit run` local.
+    """
+    return {
+        "STREAMLIT_GLOBAL_DEVELOPMENT_MODE": "false",
+        "STREAMLIT_SERVER_ADDRESS": "127.0.0.1",
+        "STREAMLIT_SERVER_PORT": str(port),
+        "STREAMLIT_SERVER_HEADLESS": "true",
+        "STREAMLIT_BROWSER_GATHER_USAGE_STATS": "false",
+    }
+
+
 def free_port() -> int:
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0)); return sock.getsockname()[1]
@@ -46,7 +67,16 @@ def run_streamlit_child(app: Path, port: int) -> int:
         if sys.stderr is None: sys.stderr = sink
     from streamlit.web import bootstrap
 
+    from streamlit import config as st_config
+
+    # developmentMode primeiro: com ele ligado, definir server.port levanta erro.
+    st_config.set_option("global.developmentMode", False)
+    st_config.set_option("server.address", "127.0.0.1")
+    st_config.set_option("server.port", port)
+    st_config.set_option("server.headless", True)
+    st_config.set_option("browser.gatherUsageStats", False)
     bootstrap.run(str(app), False, [], {
+        "global.developmentMode": False,
         "server.address": "127.0.0.1",
         "server.port": port,
         "server.headless": True,
@@ -94,13 +124,15 @@ def main() -> int:
     configured_port = os.environ.get("RECEITA_FIXED_PORT")
     port = int(configured_port) if configured_port else free_port()
     stop.unlink(missing_ok=True); lock.write_text(f"{os.getpid()}:{port}")
-    os.environ.update(STREAMLIT_BROWSER_GATHER_USAGE_STATS="false", RECEITA_STOP_FILE=str(stop))
+    os.environ.update(RECEITA_STOP_FILE=str(stop), **streamlit_environment(port))
     bundle = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[3]))
     app = bundle / "src/receita_local/ui/app.py"
     if getattr(sys, "frozen", False):
         cmd = [sys.executable, "--streamlit-child", str(app), str(port)]
     else:
-        cmd = [sys.executable, "-m", "streamlit", "run", str(app), "--server.address", "127.0.0.1", "--server.port", str(port), "--server.headless", "true", "--browser.gatherUsageStats", "false"]
+        cmd = [sys.executable, "-m", "streamlit", "run", str(app), "--global.developmentMode", "false",
+               "--server.address", "127.0.0.1", "--server.port", str(port), "--server.headless", "true",
+               "--browser.gatherUsageStats", "false"]
     log = open(logs / "launcher.log", "a", encoding="utf-8")
     warning = loopback_proxy_warning()
     if warning: log.write(warning); log.flush()

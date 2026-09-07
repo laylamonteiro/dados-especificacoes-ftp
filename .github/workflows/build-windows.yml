@@ -109,6 +109,24 @@ jobs:
             Get-Process ReceitaLocal -ErrorAction SilentlyContinue | Stop-Process -Force
           }
 
+      - name: Diagnóstico quando o smoke test falha
+        if: failure()
+        shell: pwsh
+        run: |
+          $data = Join-Path $env:LOCALAPPDATA "ReceitasProcesso"
+          Write-Host "=== conteúdo de $data ==="
+          Get-ChildItem $data -Recurse -ErrorAction SilentlyContinue | Select-Object FullName, Length | Format-Table -AutoSize
+          foreach ($nome in @("logs\launcher.log", "logs\streamlit.log", "ENDERECO_DO_APLICATIVO.txt", "application.lock")) {
+            $arquivo = Join-Path $data $nome
+            if (Test-Path $arquivo) {
+              Write-Host "=== $nome ==="
+              Get-Content $arquivo -Tail 60
+            }
+          }
+          Write-Host "=== estáticos do Streamlit empacotados ==="
+          $static = "dist/ReceitaLocal/_internal/streamlit/static"
+          if (Test-Path $static) { (Get-ChildItem $static -Recurse -File).Count } else { Write-Host "AUSENTE: $static" }
+
       - name: Criar ZIP
         shell: pwsh
         run: Compress-Archive -Path dist/ReceitaLocal -DestinationPath dist/ReceitaLocal-0.1.0-win-x64.zip -Force
