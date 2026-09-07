@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+dist/
+build/
+*.db
+*.log
+Claude.zip
+KSEA8BR45*.xlsx
+KSEA8BR45*.pdf
+

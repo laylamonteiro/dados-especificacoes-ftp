@@ -1,0 +1,87 @@
+name: Validar e empacotar para Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, work]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Testes Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar dependências fixadas
+        run: python -m pip install -r requirements-dev.txt
+      - name: Executar testes
+        run: python -m pytest -q
+
+  windows:
+    name: Aplicativo Windows x64
+    needs: test
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+          cache: pip
+      - name: Instalar dependências fixadas
+        run: python -m pip install -r requirements-dev.txt
+      - name: Criar aplicativo onedir
+        run: pyinstaller --noconfirm --clean ReceitaLocal.spec
+      - name: Adicionar documentação e versão
+        shell: pwsh
+        run: |
+          Copy-Item docs/GUIA_WINDOWS.md dist/ReceitaLocal/LEIA-ME.txt
+          "0.1.0+$env:GITHUB_SHA" | Set-Content dist/ReceitaLocal/VERSAO.txt
+      - name: Smoke test do executável e URL local
+        shell: pwsh
+        run: |
+          $env:RECEITA_NO_BROWSER = "1"
+          $env:RECEITA_FIXED_PORT = "8501"
+          $process = Start-Process -FilePath "dist/ReceitaLocal/ReceitaLocal.exe" -PassThru
+          try {
+            $ready = $false
+            1..90 | ForEach-Object {
+              if (-not $ready) {
+                try {
+                  $response = Invoke-WebRequest "http://127.0.0.1:8501/_stcore/health" -UseBasicParsing -TimeoutSec 1
+                  if ($response.StatusCode -eq 200) { $ready = $true }
+                } catch { Start-Sleep -Seconds 1 }
+              }
+            }
+            if (-not $ready) { throw "A URL local não ficou disponível" }
+          } finally {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            Get-Process ReceitaLocal -ErrorAction SilentlyContinue | Stop-Process -Force
+          }
+      - name: Criar ZIP
+        shell: pwsh
+        run: Compress-Archive -Path dist/ReceitaLocal -DestinationPath dist/ReceitaLocal-0.1.0-win-x64.zip -Force
+      - name: Publicar aplicativo para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReceitaLocal-Windows-x64
+          path: dist/ReceitaLocal-0.1.0-win-x64.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Instruções no resumo da execução
+        shell: pwsh
+        run: |
+          @"
+          ## Aplicativo pronto para baixar
+          Abra **Artifacts** nesta execução, baixe **ReceitaLocal-Windows-x64**, extraia o ZIP e execute `ReceitaLocal.exe`.
+
+          O executável abre automaticamente a aplicação no navegador usando uma URL `http://127.0.0.1:<porta>`.
+          Essa URL é local ao computador e mantém os arquivos industriais fora da internet.
+          "@ | Add-Content $env:GITHUB_STEP_SUMMARY
