@@ -61,6 +61,11 @@ jobs:
               }
             }
             if (-not $ready) { throw "A URL local não ficou disponível" }
+            # /_stcore/health responde mesmo se os estáticos do Streamlit faltarem no pacote.
+            $page = Invoke-WebRequest "http://127.0.0.1:8501/" -UseBasicParsing -TimeoutSec 10
+            if ($page.StatusCode -ne 200) { throw "A página inicial devolveu $($page.StatusCode), não 200" }
+            if ($page.Content -notmatch "(?i)streamlit") { throw "A página inicial não contém a aplicação" }
+            Write-Host "Página inicial servida com $($page.Content.Length) bytes"
           } finally {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
             Get-Process ReceitaLocal -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -95,7 +100,10 @@ jobs:
               }
             }
             if (-not $ok) { throw "A porta dinâmica $port não respondeu" }
-            Write-Host "Porta dinâmica $port respondeu em /_stcore/health"
+            $page = Invoke-WebRequest "$url/" -UseBasicParsing -TimeoutSec 10
+            if ($page.StatusCode -ne 200) { throw "A página inicial devolveu $($page.StatusCode), não 200" }
+            if ($page.Content -notmatch "(?i)streamlit") { throw "A página inicial não contém a aplicação" }
+            Write-Host "Porta dinâmica $port serviu a página inicial com $($page.Content.Length) bytes"
           } finally {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
             Get-Process ReceitaLocal -ErrorAction SilentlyContinue | Stop-Process -Force
